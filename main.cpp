@@ -28,7 +28,7 @@ int main()
 	CKNN.readData("clean2.data");
 	//CKNN.readData("webRecom2.csv");
 	hDistType = 0;
-	isOriginal = true;
+	isOriginal = false;
 	int R = 2;
 	int C = 4;
 	int start_s=clock();
@@ -36,8 +36,8 @@ int main()
 		CKNN.grouping(1);
 	CKNN.init();
 	vector<int> res;
-	//for(int i = 0; i < CKNN.dataset.size(); i++)
-	for(int i = 0; i < 1; i++)
+	for(int i = 0; i < CKNN.dataset.size(); i++)
+	//for(int i = 0; i < 1; i++)
 	{
 		cout<<"Pkg: "<<i<<endl;
 		CKNN.clean(i); //clean all existing info about i

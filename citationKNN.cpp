@@ -457,16 +457,18 @@ double citationKNN::hxMax(bag A, bag B, int k, vector<vector<double>> &bagAGrpCt
 double citationKNN::hxMin(bag A, bag B, int k, vector<vector<double>> &bagAGrpCtrBagBIns, vector<vector<double>> &bagBGrpCtrBagAIns,
 	vector<vector<double>> &bagAInsBagBIns, vector<vector<double>> &distALmToBLm)  //k is the k-th ranked distance
 {
-	multiset<double> minAtoB;
+	priority_queue<double> h_minAtoB;
 
 	if(curDistBtwBag[A.index][B.index] != -1)
 	{
 		if(distCurBagToCiter != DBL_MAX && curDistBtwBag[A.index][B.index] < distCurBagToCiter)
 			return -2;
-		minAtoB.insert(curDistBtwBag[A.index][B.index]);
+		h_minAtoB.push(curDistBtwBag[A.index][B.index]);
 	}
 	else
-		minAtoB.insert(DBL_MAX);
+	{
+		h_minAtoB.push(DBL_MAX);
+	}
 	bool realDist = true;
 	for(int i = 0; i < A.ins.size(); i++)
 	{
@@ -494,12 +496,13 @@ double citationKNN::hxMin(bag A, bag B, int k, vector<vector<double>> &bagAGrpCt
 
 				if(distCurBagToCiter != DBL_MAX && uBound < distCurBagToCiter)
 				{
-					curDistBtwBag[A.index][B.index] = curDistBtwBag[B.index][A.index] = *minAtoB.rbegin();
+					curDistBtwBag[A.index][B.index] = curDistBtwBag[B.index][A.index] = h_minAtoB.top();
 					return -2;
 				}
 				if(lBound >= minInsToBag) //no need to cal dist between A.ins[i] and B.ins[j], since it will not update minInsToBag
 					continue;
-				if(minAtoB.size() == k && lBound >= *minAtoB.rbegin()) //no need to cal, since it will not update the kth element in minAtoB.
+
+				if(h_minAtoB.size() == k && lBound >= h_minAtoB.top()) //no need to cal, since it will not update the kth element in minAtoB.
 					continue;
 
 				double distBtwCtrIns;
@@ -515,12 +518,13 @@ double citationKNN::hxMin(bag A, bag B, int k, vector<vector<double>> &bagAGrpCt
 				uBound = distBtwCtrIns + distToGrpCtr;
 				if(distCurBagToCiter != DBL_MAX && uBound < distCurBagToCiter)
 				{
-					curDistBtwBag[A.index][B.index] = curDistBtwBag[B.index][A.index] = *minAtoB.rbegin();
+					curDistBtwBag[A.index][B.index] = curDistBtwBag[B.index][A.index] = h_minAtoB.top();
 					return -2;
 				}
 				if(lBound >= minInsToBag) //no need to cal dist between A.ins[i] and B.ins[j], since it will not update minInsToBag
 					continue;
-				if(minAtoB.size() == k && lBound >= *minAtoB.rbegin()) //no need to cal, since it will not update the kth element in minAtoB.
+
+				if(h_minAtoB.size() == k && lBound >= h_minAtoB.top()) //no need to cal, since it will not update the kth element in minAtoB.
 					continue;
 
 				double distBtwCtrIns2;
@@ -535,12 +539,13 @@ double citationKNN::hxMin(bag A, bag B, int k, vector<vector<double>> &bagAGrpCt
 				uBound = min(uBound, distBtwCtrIns2 + distToGrpCtr2);
 				if(distCurBagToCiter != DBL_MAX && uBound < distCurBagToCiter)
 				{
-					curDistBtwBag[A.index][B.index] = curDistBtwBag[B.index][A.index] = *minAtoB.rbegin();
+					curDistBtwBag[A.index][B.index] = curDistBtwBag[B.index][A.index] = h_minAtoB.top();
 					return -2;
 				}
 				if(lBound >= minInsToBag) //no need to cal dist between A.ins[i] and B.ins[j], since it will not update minInsToBag
 					continue;
-				if(minAtoB.size() == k && lBound >= *minAtoB.rbegin()) //no need to cal, since it will not update the kth element in minAtoB.
+
+				if(h_minAtoB.size() == k && lBound >= h_minAtoB.top()) //no need to cal, since it will not update the kth element in minAtoB.
 					continue;
 				if(lBound >= distCurBagToCiter)
 				{
@@ -560,17 +565,19 @@ double citationKNN::hxMin(bag A, bag B, int k, vector<vector<double>> &bagAGrpCt
 
 			minInsToBag = min(minInsToBag, insDist);
 		}
-		minAtoB.insert(minInsToBag);
-		if(minAtoB.size() > k)
-			minAtoB.erase(prev(minAtoB.end()));
+
+		h_minAtoB.push(minInsToBag);
+
+		if(h_minAtoB.size() > k)
+			h_minAtoB.pop();
 	}
-	if(*minAtoB.rbegin() > distCurBagToCiter && !realDist) //has skipped some ins, and min dis < distCurBagToCiter, thus skipped ins could have real min dis
+	if(h_minAtoB.top() > distCurBagToCiter && !realDist) //has skipped some ins, and min dis < distCurBagToCiter, thus skipped ins could have real min dis
 	{
-		curDistBtwBag[A.index][B.index] = curDistBtwBag[B.index][A.index] = *minAtoB.rbegin();
+		curDistBtwBag[A.index][B.index] = curDistBtwBag[B.index][A.index] = h_minAtoB.top();
 		return -1;
 	}
 
-	return *minAtoB.rbegin(); //return the last element in the multiset
+	return h_minAtoB.top();
 }
 
 double citationKNN::dist(vector<double> &a, vector<double> &b)
@@ -623,7 +630,7 @@ int citationKNN::predict(int curBagIdx, int R, int C) //predict the label of tes
 				swap(bagOrder[++i1], bagOrder[i2]);
 		}
 
-		multiset<pair<double, int>> distBag; //double is for the Hausdorff dist, int is the index of bag
+		priority_queue<pair<double, int>> h_distBag; //double is for the Hausdorff dist, int is the index of bag
 		bool skip = false; //if skip is true, current bag will not be citer
 		distCurBagToCiter = DBL_MAX;
 		for(auto j : bagOrder)
@@ -724,9 +731,11 @@ int citationKNN::predict(int curBagIdx, int R, int C) //predict the label of tes
 						lBound = max(lBound, distALmToBLm[k1][k1] - min(dataset[i].ins[ctrInsIdx1].furstInsDist, dataset[j].ins[ctrInsIdx2].furstInsDist));
 					}*/
 				}
-				if(i == curBagIdx && (R == 0 || distBag.size() == R && lBound >= (*distBag.rbegin()).first))
+
+				if(i == curBagIdx && (R == 0 || h_distBag.size() == R && lBound >= (h_distBag.top()).first))
 					continue;
-				if(i != curBagIdx && (C == 0 || distBag.size() == C && lBound >= (*distBag.rbegin()).first))
+
+				if(i != curBagIdx && (C == 0 || h_distBag.size() == C && lBound >= (h_distBag.top()).first))
 					continue;
 				//if(i != curBagIdx && (C == 0 || lBound > distCurBagToCiter))
 					//continue;
@@ -745,30 +754,31 @@ int citationKNN::predict(int curBagIdx, int R, int C) //predict the label of tes
 			if(j == curBagIdx)
 				distCurBagToCiter = hDist; //dist between curbag (curBagIdx) and bag i
 
-			distBag.insert(make_pair(hDist, j));
+			h_distBag.push(make_pair(hDist, j));
 
-			if((i == curBagIdx && distBag.size() > R) || (i != curBagIdx && distBag.size() > C))
+			if((i == curBagIdx && h_distBag.size() > R) || (i != curBagIdx && h_distBag.size() > C))
 			{
-				if(distBag.rbegin()->second == curBagIdx)
+				if(h_distBag.top().second == curBagIdx)
 				{
 					skip = true;
 					break;
 				}
-				distBag.erase(prev(distBag.end()));
+				h_distBag.pop();
 			}
 		}
 		if(!skip)
 		{
-			for(auto k : distBag)
+			while(h_distBag.size() > 0)
 			{
+				auto k = h_distBag.top();
+				h_distBag.pop();
+				
 				if(i == curBagIdx) //current bag is the query bag
 				{
-					//cout<<k.second<<" "<<dataset[k.second].label<<"xxx"<<endl;
 					vote.push_back(dataset[k.second].label);
 				}
 				else if(k.second == curBagIdx) //bag of bagIdx is in the C-nearest neighbors of bag of i
 				{
-					//cout<<i<<" "<<dataset[i].label<<"zzz"<<endl;
 					vote.push_back(dataset[i].label);
 					break;
 				}

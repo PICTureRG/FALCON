@@ -8,6 +8,7 @@
 #include <limits.h>
 #include <set>
 #include <cfloat>
+#include <queue>
 #include "bag.h"
 #include "group.h"
 
